@@ -3,8 +3,13 @@ from torch import nn
 from torch import optim
 
 
-def train(net, train_loader, epochs=10, device="cpu", verbose=True):
-    criterion = nn.CrossEntropyLoss()
+def train(net, train_loader, epochs=10, device="cpu", loss=None, verbose=True):
+
+    if loss is None:
+        criterion = nn.CrossEntropyLoss()
+    else:
+        criterion = loss
+
     optimizer = optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
 
     steps = 0
