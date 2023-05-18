@@ -5,17 +5,9 @@ Base dataset = CIFAR10
 Incremental dataset = MNIST
 
 ### "Base":
-Test with base classes:70.28%
-Test with incr. classes:3.16%
-
-### "Freeze":
-Test with base classes:70.28%
-Test with incr. classes:3.16%
-
-### "AddRegularization":
-Test with base classes:15.44%
-Test with incr. classes:93.2%
+Test with base classes:67.27%
+Test with incr. classes:14.6%
 
 ### "LearningWithoutForgetting":
-Test with base classes:23.31%
-Test with incr. classes:94.85%
+Test with base classes:33.12%
+Test with incr. classes:94.14%

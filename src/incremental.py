@@ -11,7 +11,7 @@ class Incremental:
         self.device = device
         self.name = "Base class"
 
-    def increment(self, incr_loader, epochs):
+    def increment(self, t, incr_loader, epochs):
         pass
 
 
@@ -21,7 +21,7 @@ class Freeze(Incremental):
         super(Freeze, self).__init__(net, device)
         self.name = "Freeze"
 
-    def increment(self, incr_loader, epochs):
+    def increment(t, self, incr_loader, epochs):
         # freeze the parameters
         for param in self.net.parameters():
             param.requires_grad = False
@@ -47,7 +47,7 @@ class AddRegularization(Incremental):
         self.reg_lambda = reg_lambda
         self.name = "AddRegularization"
 
-    def increment(self, incr_loader, epochs):
+    def increment(self, t, incr_loader, epochs):
         # get old parameters
         old_param = []
 
@@ -73,16 +73,10 @@ class LearningWithoutForgetting(Incremental):
         self.reg_lambda = reg_lambda
         self.temp = temp
         self.net_old = None
-        self.optimizer = torch.optim.Adam(net.parameters(), lr=0.001, weight_decay=0.001)
+        self.optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
         self.name = "LearningWithoutForgetting"
 
-    def increment(self, incr_loader, epochs):
-        # Save the old model and freeze its parameters
-        self.net_old = deepcopy(self.net)
-        self.net_old.eval()
-        for param in self.net_old.parameters():
-            param.requires_grad = False
-
+    def increment(self, t, incr_loader, epochs):
         # train the new model
         self.net.train()
 
@@ -94,14 +88,16 @@ class LearningWithoutForgetting(Incremental):
             for data in incr_loader:
                 images, labels = data[0].to(self.device), data[1].to(self.device)
                 steps += 1
-                self.optimizer.zero_grad()
 
                 # Forward prop on both the old and new models
-                outputs_old = self.net_old(images)
+                outputs_old = None
+                if t > 0:
+                    outputs_old = self.net_old(images)
                 outputs = self.net(images)
-                loss = self.criterion(outputs, labels, outputs_old)
+                loss = self.criterion(t, outputs, labels, outputs_old)
 
                 # Backward prop
+                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
 
@@ -111,6 +107,33 @@ class LearningWithoutForgetting(Incremental):
                 if steps % print_every == 0:
                     print(f'[Epoch {epoch + 1}] loss: {running_loss / print_every:.3f}')
                     running_loss = 0.0
+
+        # Save the old model and freeze its parameters
+        self.net_old = deepcopy(self.net)
+        self.net_old.eval()
+        for param in self.net_old.parameters():
+            param.requires_grad = False
+
+    def test(self, testloader,t):
+        """
+        from https://github.com/mmasana/FACIL/blob/master/src/approach/lwf.py
+        """
+        total_correct = 0
+        total_labels = 0
+        with torch.no_grad():
+            self.net.eval()
+            for data in testloader:
+                images, labels = data[0].to(self.device), data[1].to(self.device)
+                outputs = self.net(images)
+                pred = torch.zeros_like(labels).to(self.device)
+                for m in range(len(pred)):
+                    this_task = t
+                    pred[m] = outputs[this_task][m].argmax()
+                correct = (pred == labels).float()
+                total_correct += correct.sum().data.cpu().numpy().item()
+                total_labels += len(labels)
+            return total_correct / total_labels
+
 
     def cross_entropy(self, outputs, targets, exp=1.0, size_average=True, eps=1e-5):
         """
@@ -131,13 +154,16 @@ class LearningWithoutForgetting(Incremental):
             ce = ce.mean()
         return ce
 
-    def criterion(self, outputs, targets, outputs_old=None):
+    def criterion(self, t, outputs, targets, outputs_old=None):
         """
         Returns the loss value
         from https://github.com/mmasana/FACIL/blob/master/src/approach/lwf.py
         """
         loss = 0
-        # Knowledge distillation loss for all previous tasks
-        loss += self.reg_lambda * self.cross_entropy(outputs,
-                                                     outputs_old, exp=1.0 / self.temp)
-        return loss + torch.nn.functional.cross_entropy(outputs, targets)
+        if t > 0:
+            # Knowledge distillation loss for all previous tasks
+            loss += self.reg_lambda * self.cross_entropy(torch.cat(outputs[:t], dim=1),
+                                                   torch.cat(outputs_old[:t], dim=1), exp=1.0 / self.temp)
+        return loss + torch.nn.functional.cross_entropy(outputs[t], targets)
+
+

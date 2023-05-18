@@ -1,0 +1,17 @@
+
+src/data/MNIST/raw/train-labels-idx1-ubyte
+*.gz
+src/data/MNIST/raw/train-images-idx3-ubyte
+*.iml
+*.xml
+*.pyc
+*.meta
+src/data/cifar-10-batches-py/data_batch_1
+src/data/cifar-10-batches-py/data_batch_3
+src/data/cifar-10-batches-py/data_batch_2
+src/data/cifar-10-batches-py/data_batch_5
+*.html
+src/data/cifar-10-batches-py/data_batch_4
+src/data/cifar-10-batches-py/test_batch
+src/data/MNIST/raw/t10k-images-idx3-ubyte
+src/data/MNIST/raw/t10k-labels-idx1-ubyte

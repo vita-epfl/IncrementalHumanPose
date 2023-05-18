@@ -5,6 +5,13 @@ import numpy as np
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torch.utils.data.dataset import Subset
 
+import torch
+import torchvision
+import torchvision.transforms as transforms
+import numpy as np
+from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.data.dataset import Subset
+
 
 class IncrementalData:
     def __init__(self, dataset_name="CIFAR10", incremental_dataset_name="MNIST", batch_size=128, incremental_class=0,
@@ -38,7 +45,7 @@ class IncrementalData:
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
-        incr_train_transform = transforms.Compose( # transforms MNIST into CIFAR-sized images
+        incr_train_transform = transforms.Compose(
             [transforms.Resize(32),
              transforms.Grayscale(num_output_channels=3),
              transforms.ToTensor(),
@@ -62,6 +69,9 @@ class IncrementalData:
             root=data_root, train=False,
             download=True, transform=val_test_transform
         )
+
+        targets_train = torch.tensor(self.train_dataset.targets)
+        targets_test = torch.tensor(self.test_dataset.targets)
 
         if not choose_incr_from_dataset:
             self.incr_train_dataset = self.incr_dataset(
@@ -98,9 +108,6 @@ class IncrementalData:
             base_classes = [x for x in range(self.class_size) if x != self.incremental_class]
             incremental_classes = [self.incremental_class]  # more classes, more steps?
 
-            targets_train = torch.tensor(self.train_dataset.targets)
-            targets_test = torch.tensor(self.test_dataset.targets)
-
             base_train_idx = 0
             base_test_idx = 0
             for base_class in base_classes:
@@ -114,7 +121,6 @@ class IncrementalData:
                 incr_test_idx += targets_test == incr_class
 
             # define dataloaders
-            # with only the base classes
             self.base_train_loader = DataLoader(
                 Subset(self.train_dataset, np.where(base_train_idx == 1)[0]),
                 batch_size=batch_size, num_workers=2
@@ -135,7 +141,6 @@ class IncrementalData:
                 Subset(self.test_dataset, np.where(incr_test_idx == 1)[0]),
                 batch_size=batch_size, num_workers=2
             )
-
             # with all classes available
             self.all_test_loader = DataLoader(
                 self.test_dataset,

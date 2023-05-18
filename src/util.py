@@ -39,8 +39,8 @@ def train(net, train_loader, epochs=10, device="cpu", loss=None, verbose=True):
 def test(net, testloader, device="cpu"):
     correct = 0
     total = 0
-    net.eval()
     with torch.no_grad():
+        net.eval()
         for data in testloader:
             images, labels = data[0].to(device), data[1].to(device)
             pred = net(images)
@@ -49,3 +49,4 @@ def test(net, testloader, device="cpu"):
             correct += (predicted_labels == labels).sum().item()
 
     return 100 * correct / total
+
