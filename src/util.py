@@ -2,6 +2,9 @@ import torch
 from torch import nn
 from torch import optim
 
+def get_frequency_response(net):
+
+    pass
 
 def train(net, train_loader, epochs=10, device="cpu", loss=None, verbose=True):
 

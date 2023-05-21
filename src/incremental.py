@@ -2,12 +2,13 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from copy import deepcopy
-from util import train
+from util import train, get_frequency_response
 
 
 class Incremental:
-    def __init__(self, net, device="cpu"):
+    def __init__(self, net, use_human_pose=True, device="cpu"):
         self.net = net
+        self.use_human_pose = use_human_pose
         self.device = device
         self.name = "Base class"
 
@@ -17,11 +18,11 @@ class Incremental:
 
 class Freeze(Incremental):
 
-    def __init__(self, net, device="cpu"):
-        super(Freeze, self).__init__(net, device)
+    def __init__(self, net, use_human_pose=True, device="cpu"):
+        super(Freeze, self).__init__(net, use_human_pose, device)
         self.name = "Freeze"
 
-    def increment(t, self, incr_loader, epochs):
+    def increment(self, t, incr_loader, epochs):
         # freeze the parameters
         for param in self.net.parameters():
             param.requires_grad = False
@@ -42,8 +43,8 @@ class Freeze(Incremental):
 
 class AddRegularization(Incremental):
 
-    def __init__(self, net, device="cpu", reg_lambda=0.15):
-        super(AddRegularization, self).__init__(net, device)
+    def __init__(self, net, use_human_pose=True, device="cpu", reg_lambda=0.15):
+        super(AddRegularization, self).__init__(net, use_human_pose, device)
         self.reg_lambda = reg_lambda
         self.name = "AddRegularization"
 
@@ -58,8 +59,11 @@ class AddRegularization(Incremental):
         def regularized_loss(output, target):
             loss = F.cross_entropy(output, target)
             sum = 0
-            for p_old, p_new in zip(old_param, self.net.parameters()):
-                sum += (torch.linalg.norm(p_new.flatten(), 2) - torch.linalg.norm(p_old.flatten(), 2)) ** 2
+            if self.use_human_pose:
+                sum = get_frequency_response(self.net.model) # TODO change the naming? (net refers to the top network)
+            else:
+                for p_old, p_new in zip(old_param, self.net.parameters()):
+                    sum += (torch.linalg.norm(p_new.flatten(), 2) - torch.linalg.norm(p_old.flatten(), 2)) ** 2
             loss += self.reg_lambda * sum
             return loss
 
@@ -68,8 +72,8 @@ class AddRegularization(Incremental):
 
 
 class LearningWithoutForgetting(Incremental):
-    def __init__(self, net, device="cpu", reg_lambda=1, temp=2):
-        super(LearningWithoutForgetting, self).__init__(net, device)
+    def __init__(self, net, use_human_pose=True, device="cpu", reg_lambda=1, temp=2):
+        super(LearningWithoutForgetting, self).__init__(net, use_human_pose, device)
         self.reg_lambda = reg_lambda
         self.temp = temp
         self.net_old = None
