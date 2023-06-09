@@ -1,0 +1,47 @@
+experiment_name: "BaseModel"
+
+model: {
+  load: False,
+  type: 'hourglass',
+  base_load_path: "/home/ceren/data/incremental_learning/BaseModel_80/",
+  save_path: "/home/ceren/data/incremental_learning",
+}
+
+dataset: {
+  load: 'mpii',  # mpii / lsp
+  mpii_params: {shuffle: True, lambda_head: 0.8, newell_validation: True, precached: True, train_ratio: 0.7},
+  lsp_params: {shuffle: False, train_ratio: 0.5}
+}
+dataset_incr: {
+  load: 'lsp',  # mpii / lsp
+  mpii_params: {shuffle: True, lambda_head: 0.8, newell_validation: True, precached: True, train_ratio: 0.7},
+  lsp_params: {shuffle: False, train_ratio: 0.5}
+}
+
+num_images: 10000
+
+train: True                            # Train a model from scratch or re-train an existing model.
+metric: True                           # Compute PCKh scores and save in CSV file format.
+increment_strategy: "reg_freq"         # finetune/reg_base/reg_freq
+reg_lambda: 0.6
+
+experiment_settings: {
+  epochs: 40,          # Default: 100
+  epochs_incr: 30,
+  lr: 0.0003,          # Default: 3e-4
+  weight_decay: 0.0,   # Default: 0.0
+  batch_size: 16,      # Default: 32
+  threshold: 0.25,
+  hm_peak: 30,
+  occlusion: True,
+  all_joints: False
+}
+
+architecture: {
+  hourglass: {nstack: 2, channels: 256},
+}
+
+visualize: False
+tensorboard: False
+
+resume_training: False
