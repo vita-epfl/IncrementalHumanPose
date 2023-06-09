@@ -1,3 +1,7 @@
+'''
+Modified from:
+https://github.com/meghshukla/ActiveLearningForHumanPose/tree/main
+'''
 import os
 import copy
 import logging

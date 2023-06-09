@@ -1,3 +1,7 @@
+'''
+From:
+https://github.com/meghshukla/ActiveLearningForHumanPose/tree/main
+'''
 import torch
 from torch import nn
 
